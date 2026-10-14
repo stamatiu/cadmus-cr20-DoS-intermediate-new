@@ -1,0 +1,79 @@
+# Verify the image and flavor catalogue on the target CADMUS installation.
+name: cr-wdos-int-001
+hosts:
+- name: siem
+  base_box:
+    image: ubuntu-noble-x86_64
+    mgmt_user: ubuntu
+  flavor: standard.large
+- name: sensor
+  base_box:
+    image: ubuntu-noble-x86_64
+    mgmt_user: ubuntu
+  flavor: standard.small
+- name: web-waf
+  base_box:
+    image: ubuntu-noble-x86_64
+    mgmt_user: ubuntu
+  flavor: standard.small
+- name: attacker
+  base_box:
+    image: ubuntu-noble-x86_64
+    mgmt_user: ubuntu
+  flavor: standard.small
+routers:
+- name: router
+  base_box:
+    image: ubuntu-noble-x86_64
+    mgmt_user: ubuntu
+  flavor: standard.small
+wan:
+  name: internet-connection
+  cidr: 100.100.100.0/24
+networks:
+- name: dos-switch
+  cidr: 10.10.0.0/24
+  accessible_by_user: true
+net_mappings:
+- host: siem
+  network: dos-switch
+  ip: 10.10.0.10
+- host: sensor
+  network: dos-switch
+  ip: 10.10.0.20
+- host: web-waf
+  network: dos-switch
+  ip: 10.10.0.30
+- host: attacker
+  network: dos-switch
+  ip: 10.10.0.40
+router_mappings:
+- router: router
+  network: dos-switch
+  ip: 10.10.0.1
+groups:
+- name: siemgroup
+  nodes:
+  - siem
+- name: sensorgroup
+  nodes:
+  - sensor
+- name: webwaf
+  nodes:
+  - web-waf
+- name: attackergroup
+  nodes:
+  - attacker
+- name: doslab
+  nodes:
+  - siem
+  - sensor
+  - web-waf
+  - attacker
+- name: consoleusers
+  nodes:
+  - attacker
+  - sensor
+  - web-waf
+  - siem
+  - router

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if ! docker network inspect cr-dos-net >/dev/null 2>&1; then docker network create cr-dos-net; fi
+if ! docker volume inspect cr-dos-esdata >/dev/null 2>&1; then docker volume create cr-dos-esdata; fi
+if docker container inspect cr-dos-elasticsearch >/dev/null 2>&1; then docker rm -f cr-dos-elasticsearch; fi
+if docker container inspect cr-dos-kibana >/dev/null 2>&1; then docker rm -f cr-dos-kibana; fi
+docker run -d --name cr-dos-elasticsearch --network cr-dos-net --network-alias elasticsearch \
+  --restart unless-stopped --memory 2g --log-opt max-size=10m --log-opt max-file=2 \
+  -p {{ siem_ip }}:9200:9200 -e discovery.type=single-node -e xpack.security.enabled=false \
+  -e 'ES_JAVA_OPTS=-Xms1g -Xmx1g' -v cr-dos-esdata:/usr/share/elasticsearch/data \
+  docker.elastic.co/elasticsearch/elasticsearch:{{ elastic_version }}
+docker run -d --name cr-dos-kibana --network cr-dos-net --restart unless-stopped --memory 2g \
+  --log-opt max-size=10m --log-opt max-file=2 -p {{ siem_ip }}:5601:5601 \
+  -e ELASTICSEARCH_HOSTS=http://elasticsearch:9200 -e XPACK_SECURITY_ENABLED=false \
+  docker.elastic.co/kibana/kibana:{{ elastic_version }}

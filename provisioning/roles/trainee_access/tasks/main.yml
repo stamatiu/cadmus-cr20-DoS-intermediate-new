@@ -1,0 +1,56 @@
+---
+- name: Check that the platform supplied a trainee public key
+  assert:
+    that:
+    - global_ssh_public_user_key is defined or trainee_ssh_public_key_path is defined
+    fail_msg: Supply global_ssh_public_user_key from the platform or trainee_ssh_public_key_path
+      on the Ansible controller.
+- name: Create the platform trainee account
+  user:
+    name: '{{ trainee_user }}'
+    shell: /bin/bash
+    groups: sudo
+    append: true
+    create_home: true
+    password: '{{ trainee_password_hash | default(omit, true) }}'
+  no_log: true
+- name: Create the trainee SSH directory
+  file:
+    path: /home/{{ trainee_user }}/.ssh
+    state: directory
+    owner: '{{ trainee_user }}'
+    group: '{{ trainee_user }}'
+    mode: '0700'
+- name: Authorize the platform-generated trainee SSH key
+  copy:
+    src: '{{ trainee_ssh_public_key_path | default(global_ssh_public_user_key) }}'
+    dest: /home/{{ trainee_user }}/.ssh/authorized_keys
+    owner: '{{ trainee_user }}'
+    group: '{{ trainee_user }}'
+    mode: '0600'
+- name: Permit the lab defender to use sudo
+  copy:
+    dest: /etc/sudoers.d/90-cadmus-trainee
+    mode: '0440'
+    content: '{{ trainee_user }} ALL=(ALL) NOPASSWD:ALL
+
+      '
+    validate: visudo -cf %s
+- name: Permit optional browser-console password authentication for the trainee
+  blockinfile:
+    path: /etc/ssh/sshd_config
+    marker: '# {mark} CADMUS TRAINEE CONSOLE'
+    block: "Match User {{ trainee_user }}\n  PasswordAuthentication yes\nMatch all\n"
+    validate: /usr/sbin/sshd -t -f %s
+    backup: true
+  when: trainee_password_hash | length > 0
+  register: trainee_console_config
+- name: Validate optional SSH console configuration
+  command: /usr/sbin/sshd -t
+  changed_when: false
+  when: trainee_console_config.changed
+- name: Reload SSH after the optional console configuration
+  service:
+    name: ssh
+    state: reloaded
+  when: trainee_console_config.changed

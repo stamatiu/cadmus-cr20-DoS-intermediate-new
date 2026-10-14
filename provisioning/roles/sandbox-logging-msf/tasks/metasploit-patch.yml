@@ -1,0 +1,13 @@
+---
+
+- name: "Find Metasploit shell.rb source code file"
+  shell: find / -regex '.*/metasploit-framework.*/lib/rex/ui/text/shell.rb' 2>&1 | grep -v "Permission denied"
+  register: slm_shell_rb_file
+
+- name: "Replace the value of the ret variable"
+  replace:
+    path: '{{ slm_shell_rb_file.stdout }}'
+    regexp: '^(.*ret = run_single\(line\))$'
+    replace: '\1; ret = 0'
+    backup: yes
+

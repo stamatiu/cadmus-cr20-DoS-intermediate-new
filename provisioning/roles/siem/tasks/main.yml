@@ -1,0 +1,24 @@
+---
+- name: Install the Docker runtime without a Compose dependency
+  apt: {name: [docker.io], state: present}
+- name: Enable Docker
+  service: {name: docker, state: started, enabled: true}
+- name: Set Elasticsearch host requirement
+  copy: {dest: /etc/sysctl.d/90-cr-dos.conf, content: "vm.max_map_count=262144\n", mode: '0644'}
+- name: Apply Elasticsearch kernel setting
+  command: sysctl -w vm.max_map_count=262144
+  changed_when: false
+- name: Install bootstrap assets
+  copy:
+    src: '{{ playbook_dir }}/files/{{ item }}'
+    dest: '/opt/cr-dos/{{ item }}'
+    mode: '0644'
+  loop: [bootstrap_siem.py, dashboards.ndjson, stage_checks.json]
+- name: Install SIEM bootstrap configuration
+  template: {src: '{{ playbook_dir }}/templates/siem-bootstrap.sh.j2', dest: /opt/cr-dos/siem-bootstrap.sh, mode: '0755'}
+- name: Bootstrap Elasticsearch and Kibana
+  command: /opt/cr-dos/siem-bootstrap.sh
+  changed_when: true
+- name: Require healthy services and import templates and dashboards
+  command: /usr/bin/python3 /opt/cr-dos/bootstrap_siem.py
+  changed_when: true

@@ -1,0 +1,12 @@
+# Course browser-console account. The matching login is published in the learner guide.
+elastic_version: 8.12.2
+zeek_image: zeek/zeek:8.1
+siem_ip: 10.10.0.10
+sensor_ip: 10.10.0.20
+web_waf_ip: 10.10.0.30
+attacker_ip: 10.10.0.40
+trainee_user: user-access
+trainee_password_hash: $6$ZmGw.8mMaxx7sQeu$o4e01toVhKQ0HM1irt6fWuS8hQWFHOEOf5q7UNmK1nq5b1HLpYLM8cDmWWYDCDKb.kq8bTKb1snTATrLC26nu0
+cadmus_enable_command_logging: true
+cadmus_command_log_port: 514
+cadmus_command_log_protocol: tcp

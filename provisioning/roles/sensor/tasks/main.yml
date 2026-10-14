@@ -1,0 +1,33 @@
+---
+- name: Install sensor dependencies
+  apt: {name: [docker.io], state: present}
+- name: Start Docker
+  service: {name: docker, state: started, enabled: true}
+- name: Create sensor output and Filebeat registry directories
+  file: {path: '{{ item }}', state: directory, mode: '0755'}
+  loop: [/var/lib/cr-dos/zeek, /var/lib/cr-dos-filebeat]
+- name: Install capture helper
+  copy: {src: '{{ playbook_dir }}/files/capture-http.sh', dest: /opt/cr-dos/capture-http.sh, mode: '0755'}
+- name: Record the pinned Zeek image
+  copy: {dest: /opt/cr-dos/zeek-image.txt, content: '{{ zeek_image }}', mode: '0644'}
+- name: Pull required Zeek image
+  command: 'docker pull {{ zeek_image }}'
+  changed_when: false
+- name: Install Filebeat sensor configuration
+  copy: {src: '{{ playbook_dir }}/files/filebeat-zeek.yml', dest: /opt/cr-dos/filebeat.yml, mode: '0644'}
+- name: Remove old sensor Filebeat container if present
+  command: docker rm -f cr-dos-filebeat-zeek
+  register: old_sensor_filebeat
+  failed_when: old_sensor_filebeat.rc not in [0, 1]
+  changed_when: old_sensor_filebeat.rc == 0
+- name: Start mandatory Zeek log shipping
+  command: >-
+    docker run -d --name cr-dos-filebeat-zeek --restart unless-stopped --network host
+    --user root --log-opt max-size=10m --log-opt max-file=2
+    -v /opt/cr-dos/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    -v /var/lib/cr-dos/zeek:/var/lib/cr-dos/zeek:ro
+    -v /var/lib/cr-dos-filebeat:/usr/share/filebeat/data
+    docker.elastic.co/beats/filebeat:{{ elastic_version }} filebeat -e --strict.perms=false
+
+- name: Install labelled packet capture and evidence collection
+  copy: {src: '{{ playbook_dir }}/files/capture.py', dest: /opt/cr-dos/capture.py, mode: '0755'}

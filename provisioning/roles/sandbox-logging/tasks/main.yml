@@ -1,0 +1,31 @@
+---
+
+- name: Set variable slf_sandbox_id if empty - use variable global_sandbox_id instead
+  set_fact:
+    slf_sandbox_id: "{{ global_sandbox_id }}"
+  when: slf_sandbox_id is not defined and global_sandbox_id is defined
+
+- name: Set variable slf_pool_id if empty - use variable global_pool_id instead
+  set_fact:
+    slf_pool_id: "{{ global_pool_id }}"
+  when: slf_pool_id is not defined and global_pool_id is defined
+
+- name: Set variable slf_sandbox_name if empty - use variable global_sandbox_name instead
+  set_fact:
+    slf_sandbox_name: "{{ global_sandbox_name }}"
+  when: slf_sandbox_name is not defined and global_sandbox_name is defined
+
+- name: Set up sandbox bash logging
+  include_role:
+    name: sandbox-logging-bash
+
+- name: Set up sandbox msf logging
+  include_role:
+    name: sandbox-logging-msf
+  when: ansible_distribution == 'Kali'
+
+- name: Set up sandbox logging forward
+  include_role:
+    name: sandbox-logging-forward
+  vars:
+    slf_local_env: '{{ true if slf_user_id is defined and slf_access_token is defined else false }}'

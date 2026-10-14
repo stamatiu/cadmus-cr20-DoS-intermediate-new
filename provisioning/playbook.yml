@@ -1,0 +1,54 @@
+---
+- name: Configure course browser console accounts on all explicit machines
+  hosts: consoleusers
+  become: true
+  roles:
+  - trainee_access
+- name: Common intermediate DoS lab preparation
+  hosts: doslab
+  become: true
+  roles:
+  - common
+- name: Configure CR shell command logging through MAN
+  hosts: doslab
+  become: true
+  gather_facts: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  pre_tasks:
+  - name: Require the platform inventory for cloud command logging
+    assert:
+      that:
+      - ansible_version.full is version('2.14', '>=')
+      - '''man'' in hostvars'
+      - global_sandbox_id is defined
+      - global_pool_id is defined
+      fail_msg: Cloud command logging requires Ansible 2.14+, the generated MAN host,
+        and platform sandbox/pool IDs.
+    when: cadmus_enable_command_logging | bool
+  roles:
+  - role: sandbox-logging
+    slf_destination: '{{ hostvars[''man''].ansible_host }}'
+    slf_destination_port: '{{ cadmus_command_log_port }}'
+    slf_destination_protocol: '{{ cadmus_command_log_protocol }}'
+    when: cadmus_enable_command_logging | bool
+- name: Install the SIEM and dashboard objects
+  hosts: siemgroup
+  become: true
+  roles:
+  - siem
+- name: Install the web application, WAF and packet capture endpoint
+  hosts: webwaf
+  become: true
+  roles:
+  - web_waf
+- name: Install the real PCAP and Zeek analysis workflow
+  hosts: sensorgroup
+  become: true
+  roles:
+  - sensor
+- name: Install controlled traffic generators
+  hosts: attackergroup
+  become: true
+  roles:
+  - attacker

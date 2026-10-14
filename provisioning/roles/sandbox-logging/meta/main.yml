@@ -1,0 +1,24 @@
+galaxy_info:
+  author: KYPO Team (Masaryk University) and CyberSecurity Hub
+  description: Add msf4 commands to the Syslog.
+  company: CSIRT-MU and CyberSecurity Hub, z.s.
+  license: MIT
+  min_ansible_version: '2.14'
+  galaxy_tags: []
+
+dependencies:
+  - name: sandbox-logging-bash
+    src: https://github.com/cyberrangecz/ansible-role-sandbox-logging-bash.git
+    scm: git
+    version: v1.0.0
+    tags: [ never ] # Ansible will install and skip execution of that role unless you specifically request it
+  - name: sandbox-logging-msf
+    src: https://github.com/cyberrangecz/ansible-role-sandbox-logging-msf.git
+    scm: git
+    version: v1.0.0
+    tags: [ never ] # Ansible will install and skip execution of that role unless you specifically request it
+  - name: sandbox-logging-forward
+    src: https://github.com/cyberrangecz/ansible-role-sandbox-logging-forward.git
+    scm: git
+    version: v1.0.0
+    tags: [ never ] # Ansible will install and skip execution of that role unless you specifically request it

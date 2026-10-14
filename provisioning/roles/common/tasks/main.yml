@@ -1,0 +1,87 @@
+---
+- name: Refresh package metadata
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+- name: Install common tools
+  apt:
+    name:
+    - python3
+    - curl
+    - jq
+    - ca-certificates
+    - tcpdump
+    - chrony
+    state: present
+- name: Keep lab timestamps synchronized
+  service:
+    name: chrony
+    state: started
+    enabled: true
+- name: Create helper directory
+  file:
+    path: /opt/cr-dos
+    state: directory
+    mode: '0755'
+- name: Install fixed lab host aliases
+  blockinfile:
+    path: /etc/hosts
+    marker: '# {mark} CADMUS CR20 LAB'
+    block: '10.10.0.10 siem kibana elasticsearch
+
+      10.10.0.20 sensor
+
+      10.10.0.30 web-waf web waf
+
+      10.10.0.40 attacker
+
+      '
+- name: Install common exercise tools
+  copy:
+    src: '{{ playbook_dir }}/files/{{ item }}'
+    dest: /opt/cr-dos/{{ item }}
+    mode: '0755'
+  loop:
+  - lab_api.py
+  - traffic.py
+  - health.py
+  - metrics.py
+  - verify_stage.py
+  - incident.py
+  - capstone.py
+  - sequence.py
+  - session.py
+  - observe.py
+  - load.py
+  - drill.py
+  - event.py
+  - evidence.py
+  - notes.py
+  - node_agent.py
+- name: Install periodic node fact collection service
+  copy:
+    dest: /etc/systemd/system/cr-dos-facts.service
+    mode: '0644'
+    content: '[Unit]
+
+      Description=CADMUS CR20 node health facts
+
+      After=network-online.target
+
+      [Service]
+
+      ExecStart=/usr/bin/python3 /opt/cr-dos/node_agent.py
+
+      Restart=on-failure
+
+      [Install]
+
+      WantedBy=multi-user.target
+
+      '
+- name: Enable periodic node fact collection
+  systemd:
+    name: cr-dos-facts
+    state: started
+    enabled: true
+    daemon_reload: true

@@ -1,0 +1,28 @@
+- name: check that CA certificate is set 
+  fail:
+      msg: the CA certificate must be set
+  when: item not in vars or not vars[item]
+  loop:
+      - slf_rsyslog_ca_cert_file
+
+- name: Install rsyslog gnutls 
+  apt:
+    name: rsyslog-gnutls
+    update_cache: yes
+
+- name: create cert.d directory
+  file:
+    path: "{{ slf_rsyslog_cert_directory }}"
+    state: directory
+
+- name: copy available cert files
+  copy:
+    src: "{{ item }}"
+    dest: "{{ slf_rsyslog_cert_directory }}/{{ item | basename }}"
+    mode: '0644'
+  when: item 
+  loop: 
+    - '{{ slf_rsyslog_key_file }}'   
+    - '{{ slf_rsyslog_cert_file }}'
+    - '{{ slf_rsyslog_ca_cert_file }}'
+    

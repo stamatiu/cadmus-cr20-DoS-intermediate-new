@@ -1,0 +1,4 @@
+---
+- fail: msg="Variable '{{ item }}' is not defined!"
+  when: item not in vars
+  with_items: "{{ slf_required_cloud_vars }}"

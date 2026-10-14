@@ -1,0 +1,16 @@
+- name: Load a variable file based on the OS type.
+  include_vars:
+    file: '{{ ansible_os_family }}.yml'
+
+- name: Test logger command is available
+  command: which logger 
+  changed_when: false
+
+- name: Get list of valid shells
+  shell: cat /etc/shells | grep -v '# /etc/shells'
+  changed_when: False
+  register: slb_login_shells
+
+- import_tasks: bash.yml
+- include_tasks: zsh.yml
+  when: '"zsh" in slb_login_shells.stdout_lines | map("basename")'

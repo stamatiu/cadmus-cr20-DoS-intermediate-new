@@ -1,0 +1,11 @@
+---
+# tasks file for rsysloging-client
+
+- name: Update apt packages
+  become: true
+  apt:
+    # upgrade: yes
+    update_cache: yes
+
+- include_tasks: rsyslog.yml
+- include_tasks: metasploit-patch.yml

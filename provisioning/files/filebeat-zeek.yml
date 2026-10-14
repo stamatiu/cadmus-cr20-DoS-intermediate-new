@@ -1,0 +1,19 @@
+filebeat.inputs:
+  - type: filestream
+    id: cr-dos-zeek-json
+    paths: [/var/lib/cr-dos/zeek/*/http.log, /var/lib/cr-dos/zeek/*/conn.log]
+    parsers:
+      - ndjson: {target: zeek, add_error_key: true}
+    fields: {event_source: zeek, capture_point: web-waf}
+    fields_under_root: true
+    processors:
+      - timestamp:
+          field: zeek.ts
+          layouts: ['UNIX']
+          ignore_missing: false
+output.elasticsearch:
+  hosts: ["http://10.10.0.10:9200"]
+  index: "cr-dos-zeek-%{+yyyy.MM.dd}"
+setup.ilm.enabled: false
+setup.template.enabled: false
+logging.level: warning

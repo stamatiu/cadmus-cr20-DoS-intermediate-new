@@ -1,0 +1,2 @@
+slb_log_file: /var/log/syslog
+slb_bashrc_file: /etc/bash.bashrc

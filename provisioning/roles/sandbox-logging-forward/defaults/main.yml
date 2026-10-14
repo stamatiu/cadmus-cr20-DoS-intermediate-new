@@ -1,0 +1,22 @@
+---
+slf_required_vars:
+  - slf_destination
+slf_required_cloud_vars:
+  - slf_sandbox_id
+  - slf_pool_id
+slf_required_local_vars:
+  - slf_user_id
+  - slf_access_token
+
+slf_local_env: false
+slf_sandbox_name:
+
+slf_destination_port: "514"
+slf_destination_protocol: "tcp"
+slf_forward_log_severity: '*'
+slf_syslogtag_regexes: ['bash.command', 'msf.command']
+
+slf_rsyslog_key_file:
+slf_rsyslog_cert_file:
+slf_rsyslog_ca_cert_file:
+slf_rsyslog_cert_directory: /etc/rsyslog.d/cert.d

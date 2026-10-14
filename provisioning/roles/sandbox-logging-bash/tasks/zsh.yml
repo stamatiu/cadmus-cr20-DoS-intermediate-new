@@ -1,0 +1,46 @@
+- name: getent passwd
+  getent:
+    database: passwd
+
+- name: create user zshrc files variables
+  set_fact:
+    slb_user_zshrc:  "{{ slb_user_zshrc | default([]) + [item.value[4] + '/.zshrc'] }}"
+  when: item.value[5] in slb_login_shells.stdout_lines
+  loop: "{{ getent_passwd | dict2items }}"
+
+- name: check existing user zshrc files
+  stat:
+      path: '{{ item }}'
+  loop: '{{ slb_user_zshrc + [slb_new_user_zshrc] }}'
+  register: slb_zshrc_stat
+
+- name: prefix existing precmd function with string "default-"
+  replace:
+      path: '{{ item.stat.path }}'
+      regexp: '(?<!default-)precmd'
+      replace: default-precmd
+  when: item.stat.exists
+  loop: '{{ slb_zshrc_stat.results }}'
+
+- name: find global zshrc file
+  find:
+      paths: /etc
+      patterns: zshrc
+      recurse: yes
+      depth: 2
+  register: slb_global_zshrc
+
+- name: define precmd function
+  blockinfile:
+      path: '{{ slb_global_zshrc.files[0].path | default("/etc/zshrc") }}'
+      create: yes
+      marker: '# {mark} ANSIBLE MANAGED BLOCK'
+      block: |
+          if [ -f /etc/bashrc.d/log_commands.sh ]; then
+            . /etc/bashrc.d/log_commands.sh
+          fi
+
+          preexec() {
+            log-zsh-command $1 &>/dev/null
+          }
+

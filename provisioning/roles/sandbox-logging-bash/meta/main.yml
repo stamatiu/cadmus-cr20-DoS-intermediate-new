@@ -1,0 +1,8 @@
+galaxy_info:
+  author: KYPO Team (Masaryk University) and CyberSecurity Hub
+  description: Add console commands to RSYSLOG.
+  company: CSIRT-MU and CyberSecurity Hub, z.s.
+  license: MIT
+  min_ansible_version: '2.14'
+  galaxy_tags: []
+dependencies: []

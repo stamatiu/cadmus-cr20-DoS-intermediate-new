@@ -1,0 +1,6 @@
+---
+
+slf_destination: "{{ hostvars['man'].ansible_host }}"
+
+
+

@@ -1,0 +1,16 @@
+#Loads modules
+module(load="imfile")
+
+#Adds all possible metasploit history files to gather input from
+{% for user_history_file in slm_user_history_file_pairs %}
+input(type="imfile"
+      File="{{ user_history_file.value }}"
+      Tag="msf.command"
+      Severity="info"
+      PersistStateInterval="1"
+)
+{% endfor %}
+
+if ($syslogtag == 'msf.command') then {
+  set $!msg!cmd = $msg;
+}

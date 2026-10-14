@@ -1,0 +1,26 @@
+[
+  {
+    "role": "sandbox-logging",
+    "repository": "https://github.com/cyberrangecz/ansible-role-sandbox-logging",
+    "commit": "f48a7806490e3b8c1f8104dbbf0d9e33c9e3e754",
+    "license": "MIT"
+  },
+  {
+    "role": "sandbox-logging-bash",
+    "repository": "https://github.com/cyberrangecz/ansible-role-sandbox-logging-bash",
+    "commit": "7ce0b6dc52289299e9596c6d0f2c05fb093122d8",
+    "license": "MIT"
+  },
+  {
+    "role": "sandbox-logging-forward",
+    "repository": "https://github.com/cyberrangecz/ansible-role-sandbox-logging-forward",
+    "commit": "3543fa8c3b1073d31e2d51e74a68ed44a9969cb5",
+    "license": "MIT"
+  },
+  {
+    "role": "sandbox-logging-msf",
+    "repository": "https://github.com/cyberrangecz/ansible-role-sandbox-logging-msf",
+    "commit": "e9c428ee3b1fe724b472e7270295de2c90426043",
+    "license": "MIT"
+  }
+]

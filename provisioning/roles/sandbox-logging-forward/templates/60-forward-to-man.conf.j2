@@ -1,0 +1,51 @@
+# The line below should be in global config, or in the file with highest priority (lowest filename).
+$RepeatedMsgReduction off
+
+{% if slf_destination_protocol == "tls" %}
+#Authentication and encryption section
+
+# Make gtls driver the default
+$DefaultNetstreamDriver gtls
+$DefaultNetstreamDriverCAFile {{ slf_rsyslog_cert_directory }}/{{ slf_rsyslog_ca_cert_file | basename }}
+
+{% if slf_rsyslog_cert_file and slf_rsyslog_key_file %}
+$DefaultNetstreamDriverCertFile {{ slf_rsyslog_cert_directory }}/{{ slf_rsyslog_cert_file | basename }}
+$DefaultNetstreamDriverKeyFile {{ slf_rsyslog_cert_directory }}/{{ slf_rsyslog_key_file | basename }}
+{% endif %}
+
+# Authentication mode to be used during TLS handshake
+$ActionSendStreamDriverAuthMode x509/name
+
+# Run driver in TLS-only mode
+$ActionSendStreamDriverMode 1
+{% endif %}
+
+# template
+{% if slf_local_env -%}
+
+$template SANDBOXFORWARDER,"<%PRI%>1 %TIMESTAMP:::date-rfc3339% %HOSTNAME% %$.my-app-name% %PROCID% %MSGID% [crczp {% if slf_sandbox_name -%} sandbox_name=\"{{ slf_sandbox_name }}\" {% endif -%} user_id=\"{{ slf_user_id }}\" access_token=\"{{ slf_access_token }}\"] %$!msg%\n"
+
+{% else %}
+
+$template SANDBOXFORWARDER,"<%PRI%>1 %TIMESTAMP:::date-rfc3339% %HOSTNAME% %$.my-app-name% %PROCID% %MSGID% [crczp {% if slf_sandbox_name -%} sandbox_name=\"{{ slf_sandbox_name }}\" {% endif -%} sandbox_id=\"{{ slf_sandbox_id }}\" pool_id=\"{{ slf_pool_id }}\"] %$!msg%\n"
+
+{% endif %}
+
+if not re_match($syslogtag, '{% for syslogtag_regex in slf_syslogtag_regexes -%}
+                               {% if loop.index != 1 %}|{% endif -%}
+                               {{ syslogtag_regex }}
+                             {%- endfor %}') then stop
+
+if ($!msg == '') then {
+  set $!msg = $msg;
+}
+
+if ($APP-NAME == '') then {
+  set $.my-app-name = '-';
+} else {
+  set $.my-app-name = $APP-NAME;
+}
+
+# redirect to man
+*.{{ slf_forward_log_severity }};auth,authpriv.none  {{ '@' if slf_destination_protocol == 'udp' else '@@' }}{{ slf_destination }}:{{ slf_destination_port }};SANDBOXFORWARDER
+

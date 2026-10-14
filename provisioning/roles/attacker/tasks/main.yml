@@ -1,0 +1,5 @@
+---
+- name: Install the exercise traffic tools
+  apt:
+    name: [wrk, slowhttptest, hping3]
+    state: present

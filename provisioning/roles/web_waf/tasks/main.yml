@@ -1,0 +1,98 @@
+---
+- name: Install mandatory WAF, application and telemetry dependencies
+  apt:
+    name: [nginx, libnginx-mod-http-modsecurity, modsecurity-crs, docker.io, iproute2]
+    state: present
+- name: Create WAF configuration directory
+  file: {path: /etc/nginx/cr-dos, state: directory, mode: '0755'}
+- name: Locate the CRS setup shipped by the distribution
+  stat: {path: '{{ item }}'}
+  loop:
+    - /etc/modsecurity/crs/crs-setup.conf
+    - /usr/share/modsecurity-crs/crs-setup.conf.example
+  register: crs_candidates
+- name: Require a working CRS installation
+  assert:
+    that: "crs_candidates.results | selectattr('stat.exists') | list | length > 0"
+    fail_msg: 'CRS setup is missing. Repair the Ubuntu package installation before continuing.'
+- name: Install CRS setup
+  copy:
+    src: "{{ (crs_candidates.results | selectattr('stat.exists') | first).item }}"
+    dest: /etc/nginx/cr-dos/crs-setup.conf
+    remote_src: true
+    mode: '0644'
+- name: Install WAF configuration
+  copy: {src: '{{ playbook_dir }}/files/modsecurity.conf', dest: /etc/nginx/cr-dos/modsecurity.conf, mode: '0644'}
+- name: Install web application and control scripts
+  copy:
+    src: '{{ playbook_dir }}/files/{{ item }}'
+    dest: '/opt/cr-dos/{{ item }}'
+    mode: '0755'
+  loop: [backend.py, capture_api.py, set_mitigation.py]
+- name: Install application service
+  copy:
+    dest: /etc/systemd/system/cr-dos-app.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=CADMUS DoS lab application
+      After=network-online.target
+      [Service]
+      User=www-data
+      ExecStart=/usr/bin/python3 /opt/cr-dos/backend.py
+      Restart=on-failure
+      [Install]
+      WantedBy=multi-user.target
+- name: Install bounded target-side capture service
+  copy:
+    dest: /etc/systemd/system/cr-dos-capture.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=CADMUS bounded HTTP packet capture export
+      After=network-online.target
+      [Service]
+      ExecStart=/usr/bin/python3 /opt/cr-dos/capture_api.py
+      Restart=on-failure
+      [Install]
+      WantedBy=multi-user.target
+- name: Enable application and capture services
+  systemd: {name: '{{ item }}', state: started, enabled: true, daemon_reload: true}
+  loop: [cr-dos-app, cr-dos-capture]
+- name: Remove default site
+  file: {path: /etc/nginx/sites-enabled/default, state: absent}
+- name: Render the initial baseline Nginx configuration
+  shell: /usr/bin/python3 -c 'import sys;sys.path.insert(0,"/opt/cr-dos");from set_mitigation import config;print(config("baseline",5,10))' > /etc/nginx/sites-available/cr-dos.conf
+  changed_when: true
+- name: Enable the exercise site
+  file: {src: /etc/nginx/sites-available/cr-dos.conf, dest: /etc/nginx/sites-enabled/cr-dos.conf, state: link}
+- name: Test the required Nginx and ModSecurity configuration
+  command: nginx -t
+  changed_when: false
+- name: Restart Nginx
+  service: {name: nginx, state: restarted, enabled: true}
+- name: Start Docker
+  service: {name: docker, state: started, enabled: true}
+- name: Install Filebeat configuration
+  copy: {src: '{{ playbook_dir }}/files/filebeat-waf.yml', dest: /opt/cr-dos/filebeat.yml, mode: '0644'}
+- name: Create Filebeat registry directory
+  file: {path: /var/lib/cr-dos-filebeat, state: directory, mode: '0755'}
+- name: Remove an old exercise Filebeat container if present
+  command: docker rm -f cr-dos-filebeat-waf
+  register: old_filebeat
+  failed_when: old_filebeat.rc not in [0, 1]
+  changed_when: old_filebeat.rc == 0
+- name: Start mandatory WAF log shipping
+  command: >-
+    docker run -d --name cr-dos-filebeat-waf --restart unless-stopped --network host
+    --user root --log-opt max-size=10m --log-opt max-file=2
+    -v /opt/cr-dos/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    -v /var/log/nginx:/var/log/nginx:ro
+    -v /var/lib/cr-dos-filebeat:/usr/share/filebeat/data
+    docker.elastic.co/beats/filebeat:{{ elastic_version }} filebeat -e --strict.perms=false
+
+- name: Record initial baseline control profile
+  copy:
+    dest: /opt/cr-dos/mitigation-profile.json
+    mode: '0644'
+    content: '{"profile":"baseline","rate":5,"burst":10}'

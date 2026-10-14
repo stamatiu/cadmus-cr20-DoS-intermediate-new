@@ -1,0 +1,2 @@
+slb_log_file: /var/log/messages
+slb_bashrc_file: /etc/bashrc

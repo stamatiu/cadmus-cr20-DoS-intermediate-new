@@ -1,0 +1,21 @@
+filebeat.inputs:
+  - type: filestream
+    id: cr-dos-nginx-json
+    paths: [/var/log/nginx/cr_dos_access.json]
+    parsers:
+      - ndjson: {target: "", add_error_key: true, overwrite_keys: true}
+    fields: {stream: waf}
+    fields_under_root: true
+  - type: filestream
+    id: cr-dos-modsecurity-json
+    paths: [/var/log/nginx/cr_dos_modsecurity.json]
+    parsers:
+      - ndjson: {target: modsecurity, add_error_key: true}
+    fields: {stream: modsecurity, event_source: modsecurity}
+    fields_under_root: true
+output.elasticsearch:
+  hosts: ["http://10.10.0.10:9200"]
+  index: "cr-dos-%{[stream]}-%{+yyyy.MM.dd}"
+setup.ilm.enabled: false
+setup.template.enabled: false
+logging.level: warning

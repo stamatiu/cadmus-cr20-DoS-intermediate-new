@@ -1,0 +1,34 @@
+---
+- name: Ensures /etc/bashrc.d/ exists
+  file:
+    path: "/etc/bashrc.d/"
+    state: "directory"
+
+- name: "Source all of ~/.bashrc.d/* to .bashrc"
+  blockinfile:
+   dest: "{{ slb_bashrc_file }}"
+   block: |
+      if [ -d /etc/bashrc.d ]; then
+      for f in /etc/bashrc.d/*.sh; do
+          if [ -r $f ]; then
+              . $f
+          fi
+      done
+      unset f
+      fi
+   marker: '# {mark} source bashrc.d'
+   insertbefore: BOF
+   create: no
+
+- name: "Setup bash command monitoring"
+  copy:
+    src: log_commands.sh
+    dest: /etc/bashrc.d/log_commands.sh
+    mode: 0644
+
+- name: "Add history configuration to /etc/bashrc.d/history.sh"
+  copy:
+    src: profile-history.sh
+    dest: /etc/bashrc.d/history.sh
+    mode: 0755
+  become: yes
